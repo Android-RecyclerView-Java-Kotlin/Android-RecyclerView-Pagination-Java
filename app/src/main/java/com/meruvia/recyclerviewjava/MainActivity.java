@@ -11,10 +11,18 @@ import android.view.View;
 import android.widget.ProgressBar;
 
 import com.meruvia.recyclerviewjava.adapter.PaginationAdapter;
+import com.meruvia.recyclerviewjava.api.MovieApi;
 import com.meruvia.recyclerviewjava.listener.PaginationScrollListener;
 import com.meruvia.recyclerviewjava.model.Movie;
+import com.meruvia.recyclerviewjava.model.Result;
+import com.meruvia.recyclerviewjava.model.TopRatedMovies;
+import com.meruvia.recyclerviewjava.service.MovieService;
 
 import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -26,11 +34,13 @@ public class MainActivity extends AppCompatActivity {
     RecyclerView rv;
     ProgressBar progressBar;
 
-    private static final int PAGE_START = 0;
+    private static final int PAGE_START = 1;
     private boolean isLoading = false;
     private boolean isLastPage = false;
-    private int TOTAL_PAGES = 3;
+    private int TOTAL_PAGES = 10;
     private int currentPage = PAGE_START;
+
+    private MovieService movieService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,30 +90,86 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        //init service and load data
+        movieService = MovieApi.getClient(this).create(MovieService.class);
 
-        // mocking network delay for API call
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                loadFirstPage();
-            }
-        }, 1000);
+        loadFirstPage();
+    }
+
+    /**
+     * Performs a Retrofit call to the top rated movies API.
+     */
+    private Call<TopRatedMovies> callTopRatedMoviesApi() { //2
+        return movieService.getTopRatedMovies(
+                getString(R.string.my_api_key),
+                "en_US",
+                currentPage
+        );
+    }
+
+    /**
+     * Extracts List<Result> from response
+     */
+    private List<Result> fetchResults(Response<TopRatedMovies> response) { //3
+        TopRatedMovies topRatedMovies = response.body();
+        return topRatedMovies.getResults();
     }
 
     private void loadFirstPage() {
         Log.d(TAG, "loadFirstPage: ");
-        List<Movie> movies = Movie.createMovies(adapter.getItemCount());
+
+        callTopRatedMoviesApi().enqueue(new Callback<TopRatedMovies>() {
+            @Override
+            public void onResponse(Call<TopRatedMovies> call, Response<TopRatedMovies> response) {
+
+                Log.e(TAG, "response: " + call.request().url());
+
+                List<Result> results = fetchResults(response);
+                progressBar.setVisibility(View.GONE);
+                adapter.addAll(results);
+
+                if(currentPage <= TOTAL_PAGES) adapter.addLoadingFooter();
+                else isLastPage = true;
+            }
+
+            @Override
+            public void onFailure(Call<TopRatedMovies> call, Throwable t) {
+
+            }
+        });
+
+        /*List<Movie> movies = Movie.createMovies(adapter.getItemCount());
         progressBar.setVisibility(View.GONE);
         adapter.addAll(movies);
 
         if (currentPage <= TOTAL_PAGES) adapter.addLoadingFooter();
-        else isLastPage = true;
+        else isLastPage = true;*/
 
     }
 
     private void loadNextPage() {
         Log.d(TAG, "loadNextPage: " + currentPage);
-        List<Movie> movies = Movie.createMovies(adapter.getItemCount());
+
+        callTopRatedMoviesApi().enqueue(new Callback<TopRatedMovies>() {
+            @Override
+            public void onResponse(Call<TopRatedMovies> call, Response<TopRatedMovies> response) {
+                adapter.removeLoadingFooter();
+                isLoading = false;
+
+                List<Result> results = fetchResults(response);
+                adapter.addAll(results);
+
+                if(currentPage != TOTAL_PAGES) adapter.addLoadingFooter();
+                else isLastPage = true;
+            }
+
+            @Override
+            public void onFailure(Call<TopRatedMovies> call, Throwable t) {
+
+            }
+        });
+
+        /*List<Movie> movies = Movie.createMovies(adapter.getItemCount());
 
         adapter.removeLoadingFooter();
         isLoading = false;
@@ -111,6 +177,6 @@ public class MainActivity extends AppCompatActivity {
         adapter.addAll(movies);
 
         if (currentPage != TOTAL_PAGES) adapter.addLoadingFooter();
-        else isLastPage = true;
+        else isLastPage = true;*/
     }
 }

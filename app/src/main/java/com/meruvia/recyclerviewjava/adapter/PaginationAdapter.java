@@ -1,15 +1,25 @@
 package com.meruvia.recyclerviewjava.adapter;
 
 import android.content.Context;
+import android.graphics.drawable.Drawable;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
 import com.meruvia.recyclerviewjava.R;
-import com.meruvia.recyclerviewjava.model.Movie;
+import com.meruvia.recyclerviewjava.model.Result;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,8 +28,9 @@ public class PaginationAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
 
     private static final int ITEM = 0;
     private static final int LOADING = 1;
+    private static final String BASE_URL_IMG = "https://image.tmdb.org/t/p/w220_and_h330_face";
 
-    private List<Movie> movies;
+    private List<Result> movies;
     private Context context;
 
     private boolean isLoadingAdded = false;
@@ -29,11 +40,11 @@ public class PaginationAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
         movies = new ArrayList<>();
     }
 
-    public List<Movie> getMovies() {
+    public List<Result> getMovies() {
         return movies;
     }
 
-    public void setMovies(List<Movie> movies) {
+    public void setMovies(List<Result> movies) {
         this.movies = movies;
     }
 
@@ -65,13 +76,37 @@ public class PaginationAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
     @Override
     public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
 
-        Movie movie = movies.get(position);
+        Result movie = movies.get(position);
 
         switch (getItemViewType(position)) {
             case ITEM:
-                MovieVH movieVH = (MovieVH) holder;
+                final MovieVH movieVH = (MovieVH) holder;
 
-                movieVH.textView.setText(movie.getTitle());
+                movieVH.movieTitle.setText(movie.getTitle());
+                movieVH.movieYear.setText(movie.getReleaseDate().substring(0, 4) + " | " + movie.getOriginalLanguage().toUpperCase());
+                movieVH.movieDesc.setText(movie.getOverview());
+
+                // Using Glide to handle image loading.
+                Glide
+                        .with(context)
+                        .load(BASE_URL_IMG + movie.getPosterPath())
+                        .listener(new RequestListener<Drawable>() {
+                            @Override
+                            public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
+                                movieVH.movieProgress.setVisibility(View.GONE);
+                                return false;
+                            }
+
+                            @Override
+                            public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
+                                movieVH.movieProgress.setVisibility(View.GONE);
+                                return false;
+                            }
+                        })
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
+                        .centerCrop()
+                        .into(movieVH.moviePoster);
+
                 break;
             case LOADING:
 //                Do nothing
@@ -95,19 +130,19 @@ public class PaginationAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
    _________________________________________________________________________________________________
     */
 
-    public void add(Movie mc) {
+    public void add(Result mc) {
         movies.add(mc);
         notifyItemInserted(movies.size() - 1);
     }
 
-    public void addAll(List<Movie> mcList) {
-        for (Movie mc : mcList) {
+    public void addAll(List<Result> mcList) {
+        for (Result mc : mcList) {
             add(mc);
         }
     }
 
-    public void remove(Movie city) {
-        int position = movies.indexOf(city);
+    public void remove(Result movie) {
+        int position = movies.indexOf(movie);
         if (position > -1) {
             movies.remove(position);
             notifyItemRemoved(position);
@@ -128,14 +163,14 @@ public class PaginationAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
 
     public void addLoadingFooter() {
         isLoadingAdded = true;
-        add(new Movie());
+        add(new Result());
     }
 
     public void removeLoadingFooter() {
         isLoadingAdded = false;
 
         int position = movies.size() - 1;
-        Movie item = getItem(position);
+        Result item = getItem(position);
 
         if (item != null) {
             movies.remove(position);
@@ -143,7 +178,7 @@ public class PaginationAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
         }
     }
 
-    public Movie getItem(int position) {
+    public Result getItem(int position) {
         return movies.get(position);
     }
 
@@ -157,12 +192,18 @@ public class PaginationAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
      * Main list's content ViewHolder
      */
     protected class MovieVH extends RecyclerView.ViewHolder {
-        private TextView textView;
+        private TextView movieTitle, movieYear, movieDesc;
+        private ProgressBar movieProgress;
+        private ImageView moviePoster;
 
         public MovieVH(View itemView) {
             super(itemView);
 
-            textView = (TextView) itemView.findViewById(R.id.item_text);
+            movieTitle = (TextView) itemView.findViewById(R.id.movie_title);
+            movieYear = (TextView) itemView.findViewById(R.id.movie_year);
+            movieDesc = (TextView) itemView.findViewById(R.id.movie_desc);
+            moviePoster = (ImageView) itemView.findViewById(R.id.movie_poster);
+            movieProgress = (ProgressBar) itemView.findViewById(R.id.movie_progress);
         }
     }
 
