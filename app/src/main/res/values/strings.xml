@@ -1,4 +1,11 @@
 <resources>
     <string name="app_name">RecyclerViewJava</string>
     <string name="my_api_key">f87b07fb5aa18195dbcf1ddb3a1105a2</string>
+
+    <string name="error_msg">Sorry! Couldn\'t fetch movies.</string>
+    <string name="btn_retry">Retry</string>
+    <string name="error_msg_no_internet">Not connected to internet</string>
+    <string name="error_msg_timeout">The server took too long to respond</string>
+    <string name="error_msg_unknown">An unexpected error occurred</string>
+    <string name="tap_to_reload">Tap to reload</string>
 </resources>

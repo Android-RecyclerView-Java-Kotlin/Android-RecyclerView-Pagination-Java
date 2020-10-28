@@ -8,7 +8,9 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -20,6 +22,7 @@ import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
 import com.meruvia.recyclerviewjava.R;
 import com.meruvia.recyclerviewjava.model.Result;
+import com.meruvia.recyclerviewjava.util.PaginationAdapterCallback;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,9 +37,15 @@ public class PaginationAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
     private Context context;
 
     private boolean isLoadingAdded = false;
+    private boolean retryPageLoad = false;
+
+    private PaginationAdapterCallback mCallback;
+
+    private String errorMsg;
 
     public PaginationAdapter(Context context) {
         this.context = context;
+        this.mCallback = (PaginationAdapterCallback) context;
         movies = new ArrayList<>();
     }
 
@@ -109,7 +118,22 @@ public class PaginationAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
 
                 break;
             case LOADING:
-//                Do nothing
+                LoadingVH loadingVH = (LoadingVH) holder;
+
+                if (retryPageLoad) {
+                    loadingVH.mErrorLayout.setVisibility(View.VISIBLE);
+                    loadingVH.mProgressBar.setVisibility(View.GONE);
+
+                    loadingVH.mErrorTxt.setText(
+                            errorMsg != null ?
+                                    errorMsg :
+                                    context.getString(R.string.error_msg_unknown));
+
+                } else {
+                    loadingVH.mErrorLayout.setVisibility(View.GONE);
+                    loadingVH.mProgressBar.setVisibility(View.VISIBLE);
+                }
+
                 break;
         }
 
@@ -182,6 +206,19 @@ public class PaginationAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
         return movies.get(position);
     }
 
+    /**
+     * Displays Pagination retry footer view along with appropriate errorMsg
+     *
+     * @param show
+     * @param errorMsg to display if page load fails
+     */
+    public void showRetry(boolean show, @Nullable String errorMsg) {
+        retryPageLoad = show;
+        notifyItemChanged(movies.size() - 1);
+
+        if (errorMsg != null) this.errorMsg = errorMsg;
+    }
+
 
    /*
    View Holders
@@ -208,10 +245,34 @@ public class PaginationAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
     }
 
 
-    protected class LoadingVH extends RecyclerView.ViewHolder {
+    protected class LoadingVH extends RecyclerView.ViewHolder implements View.OnClickListener {
+
+        private ProgressBar mProgressBar;
+        private ImageButton mRetryBtn;
+        private TextView mErrorTxt;
+        private LinearLayout mErrorLayout;
 
         public LoadingVH(View itemView) {
             super(itemView);
+
+            mErrorTxt = (TextView) itemView.findViewById(R.id.loadmore_errortxt);
+            mErrorLayout = (LinearLayout) itemView.findViewById(R.id.loadmore_errorlayout);
+            mRetryBtn = (ImageButton) itemView.findViewById(R.id.loadmore_retry);
+            mProgressBar = (ProgressBar) itemView.findViewById(R.id.loadmore_progress);
+
+            mRetryBtn.setOnClickListener(this);
+            mErrorLayout.setOnClickListener(this);
+        }
+
+        @Override
+        public void onClick(View view) {
+            switch (view.getId()) {
+                case R.id.loadmore_retry:
+                case R.id.loadmore_errorlayout:
+                    showRetry(false, null);
+                    mCallback.retryPageLoad();
+                    break;
+            }
         }
     }
 
