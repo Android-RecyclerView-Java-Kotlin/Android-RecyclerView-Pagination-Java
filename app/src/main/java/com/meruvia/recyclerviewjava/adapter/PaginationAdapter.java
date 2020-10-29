@@ -15,6 +15,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.RequestBuilder;
 import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.load.engine.GlideException;
@@ -31,6 +32,7 @@ public class PaginationAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
 
     private static final int ITEM = 0;
     private static final int LOADING = 1;
+    private static final int HERO = 2;
     private static final String BASE_URL_IMG = "https://image.tmdb.org/t/p/w220_and_h330_face";
 
     private List<Result> movies;
@@ -63,6 +65,10 @@ public class PaginationAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
 
         switch (viewType) {
+            case HERO:
+                View v0 = inflater.inflate(R.layout.item_hero, parent, false);
+                viewHolder = new HeroVH(v0);
+                break;
             case ITEM:
                 viewHolder = getViewHolder(parent, inflater);
                 break;
@@ -88,6 +94,15 @@ public class PaginationAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
         Result movie = movies.get(position);
 
         switch (getItemViewType(position)) {
+            case HERO:
+                final HeroVH heroVH = (HeroVH) holder;
+
+                heroVH.mMovieTitle.setText(movie.getTitle());
+                heroVH.mYear.setText(formatYearLabel(movie));
+                heroVH.mMovieDesc.setText(movie.getOverview());
+
+                loadImage(movie.getBackdropPath()).into(heroVH.mPosterImg);
+                break;
             case ITEM:
                 final MovieVH movieVH = (MovieVH) holder;
 
@@ -139,6 +154,17 @@ public class PaginationAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
 
     }
 
+    private String formatYearLabel(Result result) {
+        return result.getReleaseDate().substring(0, 4) + " | " + result.getOriginalLanguage().toUpperCase();
+    }
+
+    private RequestBuilder<Drawable> loadImage(@NonNull String posterPath) {
+        return Glide
+                .with(context)
+                .load(BASE_URL_IMG + posterPath)
+                .centerCrop();
+    }
+
     @Override
     public int getItemCount() {
         return movies == null ? 0 : movies.size();
@@ -146,7 +172,11 @@ public class PaginationAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
 
     @Override
     public int getItemViewType(int position) {
-        return (position == movies.size() - 1 && isLoadingAdded) ? LOADING : ITEM;
+        if(position == 0){
+            return HERO;
+        }else {
+            return (position == movies.size() - 1 && isLoadingAdded) ? LOADING : ITEM;
+        }
     }
 
     /*
@@ -273,6 +303,23 @@ public class PaginationAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
                     mCallback.retryPageLoad();
                     break;
             }
+        }
+    }
+
+    protected class HeroVH extends RecyclerView.ViewHolder {
+
+        private TextView mMovieTitle;
+        private TextView mMovieDesc;
+        private TextView mYear;
+        private ImageView mPosterImg;
+
+        public HeroVH(View itemView) {
+            super(itemView);
+
+            mMovieTitle = itemView.findViewById(R.id.movie_title);
+            mMovieDesc = itemView.findViewById(R.id.movie_desc);
+            mYear = itemView.findViewById(R.id.movie_year);
+            mPosterImg = itemView.findViewById(R.id.movie_poster);
         }
     }
 
