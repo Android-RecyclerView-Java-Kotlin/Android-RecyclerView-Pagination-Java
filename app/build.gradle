@@ -20,6 +20,10 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    compileOptions {
+        sourceCompatibility = '1.8'
+        targetCompatibility = '1.8'
+    }
 }
 
 dependencies {
@@ -39,4 +43,5 @@ dependencies {
         exclude group: "com.android.support"
     }
     annotationProcessor "com.github.bumptech.glide:compiler:$glide"
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.0.1'
 }

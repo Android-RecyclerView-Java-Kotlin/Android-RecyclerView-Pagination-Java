@@ -3,6 +3,7 @@ package com.meruvia.recyclerviewjava;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.os.Handler;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.DefaultItemAnimator;
@@ -43,6 +44,7 @@ public class MainActivity extends AppCompatActivity implements PaginationAdapter
     LinearLayout errorLayout;
     TextView txtError;
     Button btnRetry;
+    SwipeRefreshLayout swipeRefreshLayout;
 
     private static final int PAGE_START = 1;
     private boolean isLoading = false;
@@ -114,6 +116,25 @@ public class MainActivity extends AppCompatActivity implements PaginationAdapter
                 loadFirstPage();
             }
         });
+
+        swipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.main_swiperefresh);
+        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                doRefresh();
+            }
+        });
+    }
+
+    public void doRefresh(){
+        progressBar.setVisibility(View.VISIBLE);
+        if(callTopRatedMoviesApi().isExecuted())
+            callTopRatedMoviesApi().cancel();
+
+        adapter.getMovies().clear();
+        adapter.notifyDataSetChanged();
+        loadFirstPage();
+        swipeRefreshLayout.setRefreshing(false);
     }
 
     /**
